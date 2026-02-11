@@ -5,3 +5,11 @@
 ```
 さて、今回もですね、あなたが集めてくださった情報の中から、特に興味深い知識の断片を一緒に掘り下げていければなと。
 ```
+
+## Tasks
+
+- [ ] real time processing -> https://github.com/Uliboooo/voime/issues/1
+    - [ ] trascribe
+    - [ ] input to focused text box
+- [ ] work as IME -> https://github.com/Uliboooo/voime/issues/2
+- [ ] estimate a input language
