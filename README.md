@@ -13,3 +13,8 @@
     - [ ] input to focused text box
 - [ ] work as IME -> https://github.com/Uliboooo/voime/issues/2
 - [ ] estimate a input language
+- [ ] remove unwrap
+
+## Ref.
+
+https://github.com/RustAudio/cpal/blob/master/examples/record_wav.rs#L77

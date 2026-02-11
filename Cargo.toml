@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 whisper-rs = "0.15.1"
 hound = "3.5.1"
+fcitx5-dbus = "0.1.4"
+cpal = {version="0.17.1", features = ["jack"]}
