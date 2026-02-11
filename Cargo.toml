@@ -1,0 +1,8 @@
+[package]
+name = "voime"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+whisper-rs = "0.15.1"
+hound = "3.5.1"
