@@ -16,11 +16,6 @@ fn record<T: AsRef<Path>>(save_path: T) {
     )
     .unwrap();
 
-    // let device = {
-    //     let id = &String::from("").parse().unwrap();
-    //     host.device_by_id(id)
-    // }
-    // .unwrap();
     let device = host.default_input_device().unwrap();
 
     let config = if device.supports_input() {
@@ -118,7 +113,7 @@ where
     T: Sample,
     U: Sample + hound::Sample + FromSample<T>,
 {
-    let Ok(mut guard) = writer.try_lock() else {
+    let Ok(mut guard) = writer.lock() else {
         return;
     };
     if let Some(writer) = guard.as_mut() {
@@ -136,23 +131,47 @@ fn transcribe<T: AsRef<Path>>(model_path: T, audio_path: T) -> String {
 
     let mut reader = hound::WavReader::open(audio_path).unwrap();
     let spec = reader.spec();
+    println!("File Spec: {}Hz, {}ch", spec.sample_rate, spec.channels);
 
-    let audio_data = if spec.sample_format == hound::SampleFormat::Float {
-        reader
-            .samples::<f32>()
-            .map(|s| s.unwrap())
-            .collect::<Vec<f32>>()
+    let src_samples: Vec<f32> = if spec.sample_format == hound::SampleFormat::Float {
+        reader.samples::<f32>().map(|s| s.unwrap()).collect()
     } else {
         reader
             .samples::<i16>()
             .map(|s| s.unwrap() as f32 / 32768.0)
-            .collect::<Vec<f32>>()
+            .collect()
     };
 
-    // let audio_data = reader
-    //     .samples::<i16>()
-    //     .map(|s| s.unwrap() as f32 / 32768.0)
-    //     .collect::<Vec<f32>>();
+    let mono_samples = if spec.channels > 1 {
+        src_samples
+            .chunks_exact(spec.channels as usize)
+            .map(|c| c.iter().sum::<f32>() / spec.channels as f32)
+            .collect()
+    } else {
+        src_samples
+    };
+
+    let audio_data = if spec.sample_rate != 16000 {
+        let factor = spec.sample_rate as f64 / 16000.0;
+        let target_len = (mono_samples.len() as f64 / factor) as usize;
+        let mut result = Vec::with_capacity(target_len);
+        for i in 0..target_len {
+            let pos = i as f64 * factor;
+            let idx = pos as usize;
+            if idx + 1 < mono_samples.len() {
+                let frac = pos - idx as f64;
+                result.push(
+                    (mono_samples[idx] as f64 * (1.0 - frac) + mono_samples[idx + 1] as f64 * frac)
+                        as f32,
+                );
+            } else {
+                result.push(mono_samples[idx]);
+            }
+        }
+        result
+    } else {
+        mono_samples
+    };
 
     let mut parms = FullParams::new(whisper_rs::SamplingStrategy::Greedy { best_of: 0 });
     parms.set_language(Some("ja"));
@@ -182,11 +201,11 @@ fn main() {
     let current = std::env::current_dir().unwrap();
 
     let model_path = current.join("resource").join("ggml-small-q8_0.bin");
-    let audio_path = current.join("resource").join("test.wav");
+    let test_path = current.join("resource").join("test.wav");
     let save_path = current.join("resource").join("save.wav");
 
     // let text = transcribe(model_path, audio_path);
-    record(audio_path);
+    record(&save_path);
     let text = transcribe(model_path, save_path);
 
     println!("{text}");
