@@ -14,8 +14,8 @@
 - [ ] work as IME -> https://github.com/Uliboooo/voime/issues/2
 - [ ] estimate a input language
 - [ ] remove unwrap
+- [x] log used threads number
 
-- [ ] log used threads number
 ## Ref.
 
 https://github.com/RustAudio/cpal/blob/master/examples/record_wav.rs#L77
