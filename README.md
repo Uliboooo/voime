@@ -15,6 +15,7 @@
 - [ ] estimate a input language
 - [ ] remove unwrap
 
+- [ ] log used threads number
 ## Ref.
 
 https://github.com/RustAudio/cpal/blob/master/examples/record_wav.rs#L77
