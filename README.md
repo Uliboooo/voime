@@ -16,6 +16,8 @@
 - [ ] remove unwrap
 
 - [ ] log used threads number
+- [ ] implement GUI with GTK4 or Tauri? -> https://github.com/Uliboooo/voime/issues/3
+
 ## Ref.
 
 https://github.com/RustAudio/cpal/blob/master/examples/record_wav.rs#L77
