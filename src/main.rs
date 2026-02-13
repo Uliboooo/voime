@@ -20,6 +20,7 @@ struct AppConfig {
     dark_mode: bool,
     opacity: f32,
     auto_copy: bool,
+    auto_start_record: bool,
     key_record: Vec<String>,
     key_copy: Vec<String>,
 }
@@ -30,8 +31,9 @@ impl Default for AppConfig {
             model_path: None,
             language: "ja".to_string(),
             dark_mode: true,
-            opacity: 0.8,
+            opacity: 0.9,
             auto_copy: true,
+            auto_start_record: false,
             key_record: vec!["q".to_string(), "Return".to_string()],
             key_copy: vec!["c".to_string(), "y".to_string(), "space".to_string()],
         }
@@ -303,6 +305,62 @@ fn build_ui(app: &Application) {
     let model_ready_path_clone = model_ready_path.clone();
     let window_weak = window.downgrade();
     let auto_copy_enabled = config.auto_copy;
+    let auto_start_record = config.auto_start_record;
+
+    let toggle_recording = {
+        let recording_state = recording_state.clone();
+        let save_path = save_path.clone();
+        let model_ready_path = model_ready_path.clone();
+        let tx = tx.clone();
+        let action_button_weak = action_button.downgrade();
+        let status_label_weak = status_label.downgrade();
+        let result_box_weak = result_box.downgrade();
+        let language = config.language.clone();
+
+        move || {
+            let action_button = if let Some(b) = action_button_weak.upgrade() { b } else { return; };
+            if !action_button.is_sensitive() { return; }
+
+            let model_path = if let Some(p) = model_ready_path.lock().unwrap().clone() { p } else { return; };
+
+            let mut state = recording_state.lock().unwrap();
+            let status_label = status_label_weak.upgrade().unwrap();
+            let result_box = result_box_weak.upgrade().unwrap();
+
+            if state.is_none() {
+                let (stream, writer) = start_recording(save_path.clone());
+                *state = Some((stream, writer));
+                action_button.set_label("Stop");
+                status_label.set_text("Recording...");
+                result_box.set_visible(false);
+            } else {
+                if let Some((stream, writer)) = state.take() {
+                    drop(stream);
+                    if let Ok(mut guard) = writer.lock() {
+                        if let Some(w) = guard.take() { w.finalize().ok(); }
+                    }
+                }
+                action_button.set_sensitive(false);
+                action_button.set_label("Processing...");
+                status_label.set_text("Processing...");
+
+                let tx_clone = tx.clone();
+                let save_path_clone = save_path.clone();
+                let lang_clone = language.clone();
+                std::thread::spawn(move || {
+                    let threads = std::thread::available_parallelism().map(|n| n.get() / 2).unwrap_or(1);
+                    let params = TranscribeParams { lang: Some(&lang_clone), threads };
+                    match transcribe(&model_path, &save_path_clone, &params) {
+                        Ok(text) => { let _ = tx_clone.send(AppMsg::TranscriptionDone(text)); },
+                        Err(e) => { let _ = tx_clone.send(AppMsg::Error(e)); },
+                    };
+                });
+            }
+        }
+    };
+
+    let toggle_recording_clone = Arc::new(toggle_recording);
+    let tr_1 = toggle_recording_clone.clone();
 
     glib::idle_add_local(move || {
         while let Ok(msg) = rx.try_recv() {
@@ -313,6 +371,10 @@ fn build_ui(app: &Application) {
                         btn.set_label("Record");
                         lbl.set_text("Ready (Press key to record)");
                         *model_ready_path_clone.lock().unwrap() = Some(path);
+
+                        if auto_start_record {
+                            tr_1();
+                        }
                     }
                 }
                 AppMsg::DownloadProgress(p) => {
@@ -382,61 +444,8 @@ fn build_ui(app: &Application) {
         }
     });
 
-    let toggle_recording = {
-        let recording_state = recording_state.clone();
-        let save_path = save_path.clone();
-        let model_ready_path = model_ready_path.clone();
-        let tx = tx.clone();
-        let action_button_weak = action_button.downgrade();
-        let status_label_weak = status_label.downgrade();
-        let result_box_weak = result_box.downgrade();
-        let language = config.language.clone();
-
-        move || {
-            let action_button = if let Some(b) = action_button_weak.upgrade() { b } else { return; };
-            if !action_button.is_sensitive() { return; }
-
-            let model_path = if let Some(p) = model_ready_path.lock().unwrap().clone() { p } else { return; };
-
-            let mut state = recording_state.lock().unwrap();
-            let status_label = status_label_weak.upgrade().unwrap();
-            let result_box = result_box_weak.upgrade().unwrap();
-
-            if state.is_none() {
-                let (stream, writer) = start_recording(save_path.clone());
-                *state = Some((stream, writer));
-                action_button.set_label("Stop");
-                status_label.set_text("Recording...");
-                result_box.set_visible(false);
-            } else {
-                if let Some((stream, writer)) = state.take() {
-                    drop(stream);
-                    if let Ok(mut guard) = writer.lock() {
-                        if let Some(w) = guard.take() { w.finalize().ok(); }
-                    }
-                }
-                action_button.set_sensitive(false);
-                action_button.set_label("Processing...");
-                status_label.set_text("Processing...");
-
-                let tx_clone = tx.clone();
-                let save_path_clone = save_path.clone();
-                let lang_clone = language.clone();
-                std::thread::spawn(move || {
-                    let threads = std::thread::available_parallelism().map(|n| n.get() / 2).unwrap_or(1);
-                    let params = TranscribeParams { lang: Some(&lang_clone), threads };
-                    match transcribe(&model_path, &save_path_clone, &params) {
-                        Ok(text) => { let _ = tx_clone.send(AppMsg::TranscriptionDone(text)); },
-                        Err(e) => { let _ = tx_clone.send(AppMsg::Error(e)); },
-                    };
-                });
-            }
-        }
-    };
-
-    let toggle_recording_clone = Arc::new(toggle_recording);
-    let tr_1 = toggle_recording_clone.clone();
-    action_button.connect_clicked(move |_| { tr_1(); });
+    let tr_click = toggle_recording_clone.clone();
+    action_button.connect_clicked(move |_| { tr_click(); });
 
     let copy_to_clipboard = {
         let current_text = current_text.clone();

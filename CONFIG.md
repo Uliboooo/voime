@@ -16,8 +16,9 @@ The file is automatically created with default values on the first run.
 | `model_path` | string? | `null` | Path to a custom Whisper model (`.bin`). If not set, it uses the default path in `~/.local/share/voime/`. |
 | `language` | string | `"ja"` | Transcription language code (e.g., `"ja"`, `"en"`, `"auto"`). |
 | `dark_mode` | boolean | `true` | Enables GTK dark theme. |
-| `opacity` | float | `0.8` | Sets the opacity level (0.0 to 1.0) of the UI background. |
+| `opacity` | float | `0.9` | Sets the opacity level (0.0 to 1.0) of the UI background. |
 | `auto_copy` | boolean | `true` | Automatically copies transcribed text to the clipboard upon completion. |
+| `auto_start_record` | boolean | `false` | Automatically starts recording when the application opens and the model is ready. |
 | `key_record` | list(string) | `["q", "Return"]` | List of key names to start or stop recording. |
 | `key_copy` | list(string) | `["c", "y", "space"]` | List of key names for manual clipboard copy. |
 
