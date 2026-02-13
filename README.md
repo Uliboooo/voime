@@ -8,15 +8,15 @@
 
 ## Tasks
 
-- [ ] real time processing -> https://github.com/Uliboooo/voime/issues/1
-    - [ ] trascribe
-    - [ ] input to focused text box
-- [ ] work as IME -> https://github.com/Uliboooo/voime/issues/2
+- [x] real time processing -> https://github.com/Uliboooo/voime/issues/1
+    - [x] trascribe
+    - [ ] ~~input to focused text box~~
+- [x] work as IME -> https://github.com/Uliboooo/voime/issues/2
 - [ ] estimate a input language
-- [ ] remove unwrap
+- [x] remove unwrap
 - [x] log used threads number
 
-- [ ] implement GUI with GTK4 or Tauri? -> https://github.com/Uliboooo/voime/issues/3
+- [x] implement GUI with GTK4 or Tauri? -> https://github.com/Uliboooo/voime/issues/3
 
 ## Ref.
 
