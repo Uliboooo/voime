@@ -17,6 +17,7 @@
 - [x] log used threads number
 
 - [x] implement GUI with GTK4 or Tauri? -> https://github.com/Uliboooo/voime/issues/3
+- [ ] resolve sound play binary path
 
 ## Ref.
 
